@@ -1,7 +1,6 @@
-# web3-optimizer-ver2
-The Middle Version
-# Web3 Fee Optimizer
+# Web3-Fee-Optimizer-ver2
 
+The Middle API Hub Version
 AI-powered gas fee optimization with intelligent transaction timing and L2 routing.
 
 ## Features
