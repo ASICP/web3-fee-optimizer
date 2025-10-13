@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: web3-fee-optimizer
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_BLOCKNATIVE_API_KEY
+        sync: false
+      - key: VITE_INFURA_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+    autoDeploy: true
