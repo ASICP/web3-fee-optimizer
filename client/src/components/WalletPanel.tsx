@@ -6,28 +6,54 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { switchNetwork, NETWORKS } from '../utils/web3';
 
 interface WalletPanelProps {
   walletAddress?: string;
+  currentNetwork?: string;
   onConnect: () => void;
   onDisconnect: () => void;
 }
 
-type Network = 'Ethereum Mainnet' | 'Sepolia Testnet';
+type NetworkKey = 'MAINNET' | 'SEPOLIA';
+
+interface NetworkOption {
+  key: NetworkKey;
+  displayName: string;
+  icon: string;
+}
 
 export const WalletPanel: React.FC<WalletPanelProps> = ({
   walletAddress,
+  currentNetwork,
   onConnect,
   onDisconnect
 }) => {
-  const [selectedNetwork, setSelectedNetwork] = useState<Network>('Ethereum Mainnet');
   const [showNetworks, setShowNetworks] = useState(false);
+  const [switching, setSwitching] = useState(false);
 
-  const networks: Network[] = ['Ethereum Mainnet', 'Sepolia Testnet'];
+  const networkOptions: NetworkOption[] = [
+    { key: 'MAINNET', displayName: 'Ethereum Mainnet', icon: '🔷' },
+    { key: 'SEPOLIA', displayName: 'Sepolia Testnet', icon: '🔶' }
+  ];
 
-  const handleNetworkChange = (network: Network) => {
-    setSelectedNetwork(network);
+  const handleNetworkChange = async (networkKey: NetworkKey) => {
     setShowNetworks(false);
+    setSwitching(true);
+
+    try {
+      await switchNetwork(networkKey);
+      // Network will change and page will reload automatically
+    } catch (error: any) {
+      console.error('Failed to switch network:', error);
+      alert(error.message || 'Failed to switch network');
+      setSwitching(false);
+    }
+  };
+
+  const getCurrentNetworkIcon = () => {
+    if (!currentNetwork) return '🔷';
+    return currentNetwork.includes('Sepolia') ? '🔶' : '🔷';
   };
 
   return (
@@ -66,34 +92,39 @@ export const WalletPanel: React.FC<WalletPanelProps> = ({
               <div className="relative">
                 <button
                   onClick={() => setShowNetworks(!showNetworks)}
-                  className="w-full flex items-center justify-between p-3 bg-gray-900 rounded-lg text-white hover:bg-gray-750 transition-colors"
+                  disabled={switching}
+                  className="w-full flex items-center justify-between p-3 bg-gray-900 rounded-lg text-white hover:bg-gray-750 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">
-                      {selectedNetwork === 'Ethereum Mainnet' ? '🔷' : '🔶'}
+                    <span className="text-lg">{getCurrentNetworkIcon()}</span>
+                    <span className="text-sm">
+                      {switching ? 'Switching...' : (currentNetwork || 'Select Network')}
                     </span>
-                    <span className="text-sm">{selectedNetwork}</span>
                   </div>
                   <Badge className="bg-blue-500 text-white text-xs">Current</Badge>
                 </button>
 
                 {showNetworks && (
                   <div className="absolute top-full mt-1 w-full bg-gray-900 border border-gray-700 rounded-lg overflow-hidden z-10">
-                    {networks.map((network) => (
-                      <button
-                        key={network}
-                        onClick={() => handleNetworkChange(network)}
-                        className={`w-full flex items-center gap-2 p-3 text-sm hover:bg-gray-800 transition-colors ${
-                          network === selectedNetwork ? 'bg-gray-800 text-white' : 'text-gray-400'
-                        }`}
-                      >
-                        <span>{network === 'Ethereum Mainnet' ? '🔷' : '🔶'}</span>
-                        <span>{network}</span>
-                        {network === selectedNetwork && (
-                          <span className="ml-auto text-green-400">✓</span>
-                        )}
-                      </button>
-                    ))}
+                    {networkOptions.map((network) => {
+                      const isCurrentNetwork = currentNetwork === network.displayName;
+                      return (
+                        <button
+                          key={network.key}
+                          onClick={() => handleNetworkChange(network.key)}
+                          disabled={switching || isCurrentNetwork}
+                          className={`w-full flex items-center gap-2 p-3 text-sm hover:bg-gray-800 transition-colors disabled:cursor-not-allowed ${
+                            isCurrentNetwork ? 'bg-gray-800 text-white' : 'text-gray-400'
+                          }`}
+                        >
+                          <span>{network.icon}</span>
+                          <span>{network.displayName}</span>
+                          {isCurrentNetwork && (
+                            <span className="ml-auto text-green-400">✓</span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>

@@ -9,23 +9,71 @@ import { GasTracker } from './components/GasTracker';
 import { WalletPanel } from './components/WalletPanel';
 import { QuickActions } from './components/QuickActions';
 import { initializeOrchestrator } from './services/orchestrator';
+import {
+  connectMetaMask,
+  onAccountsChanged,
+  onChainChanged,
+  removeListeners,
+  getCurrentChainId,
+  getNetworkName
+} from './utils/web3';
 
 function App() {
   const [walletAddress, setWalletAddress] = useState<string>('');
+  const [currentNetwork, setCurrentNetwork] = useState<string>('');
   const [mockMode, setMockMode] = useState(true);
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
     initializeOrchestrator(mockMode);
+
+    // Set up MetaMask event listeners
+    onAccountsChanged((accounts: string[]) => {
+      if (accounts.length === 0) {
+        setWalletAddress('');
+        setCurrentNetwork('');
+      } else {
+        setWalletAddress(accounts[0]);
+      }
+    });
+
+    onChainChanged(async (chainId: string) => {
+      setCurrentNetwork(getNetworkName(chainId));
+      // Reload the page when chain changes (recommended by MetaMask)
+      window.location.reload();
+    });
+
+    return () => {
+      removeListeners();
+    };
   }, [mockMode]);
 
   const connectWallet = async () => {
-    // TODO: Integrate real MetaMask connection
-    const mockAddress = '0x742d35Cc6635C0532925a3b8D777532DC4DE0034';
-    setWalletAddress(mockAddress);
+    try {
+      setError('');
+      const address = await connectMetaMask();
+      setWalletAddress(address);
+
+      // Get current network
+      const chainId = await getCurrentChainId();
+      setCurrentNetwork(getNetworkName(chainId));
+    } catch (err: any) {
+      console.error('Failed to connect wallet:', err);
+      setError(err.message || 'Failed to connect wallet');
+
+      // Show alert for user-friendly error message
+      if (err.message.includes('MetaMask is not installed')) {
+        alert('MetaMask is not installed. Please install MetaMask extension to continue.');
+      } else {
+        alert(err.message);
+      }
+    }
   };
 
   const disconnectWallet = () => {
     setWalletAddress('');
+    setCurrentNetwork('');
+    setError('');
   };
 
   // Mock statistics - TODO: Replace with real data from backend
@@ -148,6 +196,7 @@ function App() {
           <div className="space-y-6">
             <WalletPanel
               walletAddress={walletAddress}
+              currentNetwork={currentNetwork}
               onConnect={connectWallet}
               onDisconnect={disconnectWallet}
             />

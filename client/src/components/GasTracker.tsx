@@ -25,25 +25,28 @@ export const GasTracker: React.FC = () => {
     const fetchGasData = async () => {
       try {
         const orchestrator = getOrchestrator();
-        const priceData = await orchestrator.getCurrentGasPrices();
+        const gasPrices = await orchestrator.getOptimizedGasData();
 
-        const avgPrice = priceData.standard;
-        const status = avgPrice < 30 ? 'Low' : avgPrice < 60 ? 'Medium' : 'High';
+        if (gasPrices && gasPrices.length > 0) {
+          const priceData = gasPrices[0]; // Use first provider's data
+          const avgPrice = priceData.standard;
+          const status = avgPrice < 30 ? 'Low' : avgPrice < 60 ? 'Medium' : 'High';
 
-        // Generate forecast data from the gas price prediction
-        const forecast = priceData.forecast.next5Blocks.map((price: number, idx: number) => ({
-          block: idx + 1,
-          gwei: Math.round(price),
-          time: `+${(idx + 1) * 12}s`
-        }));
+          // Generate forecast data from the gas price prediction
+          const forecast = priceData.forecast.next5Blocks.map((price: number, idx: number) => ({
+            block: idx + 1,
+            gwei: Math.round(price),
+            time: `+${(idx + 1) * 12}s`
+          }));
 
-        setGasData({
-          current: Math.round(avgPrice),
-          status,
-          forecast: forecast.slice(0, 6)
-        });
+          setGasData({
+            current: Math.round(avgPrice),
+            status,
+            forecast: forecast.slice(0, 6)
+          });
 
-        setLastUpdate(new Date().toLocaleTimeString());
+          setLastUpdate(new Date().toLocaleTimeString());
+        }
       } catch (error) {
         console.error('Failed to fetch gas data:', error);
       }

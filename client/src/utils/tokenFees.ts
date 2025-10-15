@@ -87,7 +87,7 @@ export const TOKENS: TokenFeeInfo[] = [
   },
   {
     symbol: 'WBTC',
-    address: '0x2260FAC5E5542a773Aa44fBCfeDc1F2F',
+    address: '0x2260FAC5E5542a773Aa44fBCfeDc1F2F4C97b07b', // Mainnet WBTC
     name: 'Wrapped Bitcoin',
     decimals: 8,
     price: 43000, // TODO: Replace with real-time price feed
@@ -132,7 +132,7 @@ export const TOKENS: TokenFeeInfo[] = [
   },
   {
     symbol: 'SLVT',
-    address: '0x0000000000000000000000000000000000000000', // TODO: Add correct SLVT contract address
+    address: '0x1Ef0048B9C3d1819d3d0BdF6Be92B9C76e4b7d75', // Mainnet SLVT (Silverton)
     name: 'Silver Token',
     decimals: 18,
     price: 31, // TODO: Replace with real-time silver price
