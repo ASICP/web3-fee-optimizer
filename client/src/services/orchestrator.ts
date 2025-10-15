@@ -8,27 +8,28 @@ import { EventEmitter } from 'events';
 // Singleton instance for your app
 let orchestratorInstance: APIOrchestrator | null = null;
 
-export const initializeOrchestrator = () => {
+export const initializeOrchestrator = (mockMode: boolean = false) => {
   if (!orchestratorInstance) {
+    // Note: mockMode functionality will be added to APIOrchestrator config in future
     orchestratorInstance = new APIOrchestrator({
       blocknativeKey: import.meta.env.VITE_BLOCKNATIVE_API_KEY,
-      infuraKey: import.meta.env.VITE_INFURA_API_KEY,
+      infuraKey: import.meta.env.VITE_INFURA_API_KEY
     });
-    
+
     // Start background services
     orchestratorInstance.startCacheCleanup();
-    
+
     // Set up global error handling
-    orchestratorInstance.on('serviceError', (error) => {
+    orchestratorInstance.on('serviceError', (error: any) => {
       console.error('API Orchestrator Error:', error);
       // TODO: Send to your error tracking service (Sentry, etc.)
     });
-    
-    orchestratorInstance.on('serviceSuccess', (data) => {
+
+    orchestratorInstance.on('serviceSuccess', (data: any) => {
       console.log('API Service Success:', data.service);
     });
   }
-  
+
   return orchestratorInstance;
 };
 
