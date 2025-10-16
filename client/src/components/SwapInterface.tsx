@@ -24,6 +24,32 @@ export const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletAddress }) =
 
   const { analyzeSwap, analysis, loading, error } = useFeeOptimization();
 
+  // Calculate estimated output amount based on token prices
+  const calculateToAmount = (fromAmt: string, fromTokenAddr: string, toTokenAddr: string) => {
+    const amount = parseFloat(fromAmt);
+    if (isNaN(amount) || amount <= 0) {
+      setToAmount('0.0');
+      return;
+    }
+
+    const fromTokenInfo = getTokenInfo(fromTokenAddr);
+    const toTokenInfo = getTokenInfo(toTokenAddr);
+
+    if (!fromTokenInfo || !toTokenInfo) {
+      setToAmount('0.0');
+      return;
+    }
+
+    // Convert from token amount to USD, then to "to" token amount
+    const fromUSD = amount * fromTokenInfo.price;
+    const toAmt = fromUSD / toTokenInfo.price;
+
+    // Apply a small simulated slippage for realism
+    const withSlippage = toAmt * (1 - slippage / 100);
+
+    setToAmount(withSlippage.toFixed(6));
+  };
+
   const handleAnalyze = async () => {
     if (!walletAddress) {
       alert('Please connect your wallet first');
@@ -124,7 +150,10 @@ export const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletAddress }) =
                 <input
                   type="text"
                   value={fromAmount}
-                  onChange={(e) => setFromAmount(e.target.value)}
+                  onChange={(e) => {
+                    setFromAmount(e.target.value);
+                    calculateToAmount(e.target.value, fromToken, toToken);
+                  }}
                   className="bg-transparent text-white text-2xl font-semibold outline-none w-full"
                   placeholder="0.0"
                 />
@@ -136,7 +165,10 @@ export const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletAddress }) =
               </div>
               <select
                 value={fromToken}
-                onChange={(e) => setFromToken(e.target.value)}
+                onChange={(e) => {
+                  setFromToken(e.target.value);
+                  calculateToAmount(fromAmount, e.target.value, toToken);
+                }}
                 className="bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-700 font-medium hover:bg-gray-750 transition-colors"
               >
                 {TOKENS.map(token => (
@@ -185,7 +217,10 @@ export const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletAddress }) =
               </div>
               <select
                 value={toToken}
-                onChange={(e) => setToToken(e.target.value)}
+                onChange={(e) => {
+                  setToToken(e.target.value);
+                  calculateToAmount(fromAmount, fromToken, e.target.value);
+                }}
                 className="bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-700 font-medium hover:bg-gray-750 transition-colors"
               >
                 {TOKENS.map(token => (

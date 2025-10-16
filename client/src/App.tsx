@@ -92,7 +92,7 @@ function App() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                <span className="text-white text-xl font-bold">⚡</span>
+                <span className="text-white text-xl font-bold">👛</span>
               </div>
               <div>
                 <h1 className="text-xl font-bold text-white">
@@ -123,7 +123,7 @@ function App() {
         {/* Welcome Section - Show only when wallet not connected */}
         {!walletAddress && (
           <div className="mb-8 text-center py-12 bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-2xl border border-gray-700">
-            <div className="text-6xl mb-4">⚡</div>
+            <div className="text-6xl mb-4">👛</div>
             <h2 className="text-3xl font-bold text-white mb-3">
               Save on Transaction Fees
             </h2>
