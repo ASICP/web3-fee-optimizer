@@ -3,7 +3,6 @@
 // =============================================================================
 
 import { APIOrchestrator, TradeRequest, OptimizationResult } from './middleware/api-orchestrator';
-import { EventEmitter } from 'events';
 
 // Singleton instance for your app
 let orchestratorInstance: APIOrchestrator | null = null;
