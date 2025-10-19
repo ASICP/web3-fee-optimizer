@@ -644,11 +644,11 @@ export class APIOrchestrator {
     const allServices = [...this.gasServices, ...this.dexServices, ...this.l2Services];
     
     allServices.forEach(service => {
-      service.on('error', (error) => {
+      service.on('error', (error: any) => {
         this.emit('serviceError', { service: service.constructor.name, error });
       });
-      
-      service.on('success', (data) => {
+
+      service.on('success', (data: any) => {
         this.emit('serviceSuccess', { service: service.constructor.name, data });
       });
     });
@@ -870,7 +870,8 @@ export class APIOrchestrator {
   startCacheCleanup(): void {
     setInterval(() => {
       const now = Date.now();
-      for (const [key, value] of this.cache.entries()) {
+      const entries = Array.from(this.cache.entries());
+      for (const [key, value] of entries) {
         if (now - value.timestamp > this.cacheTimeout) {
           this.cache.delete(key);
         }
@@ -881,7 +882,7 @@ export class APIOrchestrator {
   /**
    * Graceful shutdown - cleanup resources
    */
-  async shutdown(): void {
+  shutdown(): void {
     this.listeners = {};
     this.cache.clear();
   }
