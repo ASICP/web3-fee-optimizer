@@ -341,36 +341,36 @@ class InfuraGasService extends BaseAPIService {
  */
 class OneInchDEXService extends BaseAPIService {
   constructor() {
-    super('1inch', 'https://api.1inch.io/v5.0/1');
+    super('1inch', 'https://api.1inch.dev/swap/v6.0/1');
   }
 
   async getBestRoute(request: TradeRequest): Promise<DEXRoute> {
     const params = new URLSearchParams({
-      fromTokenAddress: request.fromToken,
-      toTokenAddress: request.toToken,
+      src: request.fromToken,
+      dst: request.toToken,
       amount: request.amount,
-      fromAddress: request.userAddress,
+      from: request.userAddress,
       slippage: request.slippage.toString(),
       disableEstimate: 'false',
     });
 
     const data = await this.makeRequest<any>(`/swap?${params}`);
-    
+
     return {
       source: this.name,
       route: {
         fromToken: request.fromToken,
         toToken: request.toToken,
         amountIn: request.amount,
-        amountOut: data.toTokenAmount,
+        amountOut: data.dstAmount || data.toAmount || '0',
         priceImpact: parseFloat(data.priceImpact || '0'),
-        gasEstimate: parseInt(data.estimatedGas || '0'),
-        protocols: data.protocols?.[0]?.map((p: any) => p[0]?.name) || [],
+        gasEstimate: parseInt(data.gas || data.estimatedGas || '0'),
+        protocols: data.protocols?.map((p: any) => p.name) || [],
       },
       fees: {
         platformFee: 0,  // 1inch doesn't charge platform fees
-        networkFee: parseInt(data.estimatedGas || '0') * 20,  // Rough estimate
-        totalFeeUSD: (parseInt(data.estimatedGas || '0') * 20 * 2000) / 1e9,
+        networkFee: parseInt(data.gas || data.estimatedGas || '0') * 20,  // Rough estimate
+        totalFeeUSD: (parseInt(data.gas || data.estimatedGas || '0') * 20 * 2000) / 1e9,
       },
     };
   }
@@ -386,13 +386,73 @@ class OneInchDEXService extends BaseAPIService {
 }
 
 /**
+ * ZeroExDEXService - 0x Protocol swap API integration
+ *
+ * PROVIDER INFO:
+ * - Professional-grade DEX aggregator
+ * - Free tier available with API key
+ * - Excellent liquidity aggregation
+ *
+ * API DOCS: https://0x.org/docs/0x-swap-api/introduction
+ */
+class ZeroExDEXService extends BaseAPIService {
+  constructor(apiKey?: string) {
+    super('0x', 'https://api.0x.org/swap/v1', apiKey);
+  }
+
+  async getBestRoute(request: TradeRequest): Promise<DEXRoute> {
+    const params = new URLSearchParams({
+      sellToken: request.fromToken,
+      buyToken: request.toToken,
+      sellAmount: request.amount,
+      takerAddress: request.userAddress,
+      slippagePercentage: (request.slippage / 100).toString(),
+    });
+
+    const data = await this.makeRequest<any>(`/quote?${params}`, {
+      headers: {
+        ...(this.apiKey && { '0x-api-key': this.apiKey }),
+      },
+    });
+
+    return {
+      source: this.name,
+      route: {
+        fromToken: request.fromToken,
+        toToken: request.toToken,
+        amountIn: request.amount,
+        amountOut: data.buyAmount,
+        priceImpact: parseFloat(data.estimatedPriceImpact || '0') * 100,
+        gasEstimate: parseInt(data.gas || '0'),
+        protocols: data.sources?.map((s: any) => s.name) || [],
+      },
+      fees: {
+        platformFee: 0,
+        networkFee: parseInt(data.gas || '0'),
+        totalFeeUSD: parseFloat(data.gasPrice || '0') * parseInt(data.gas || '0') / 1e18 * 2000,
+      },
+    };
+  }
+
+  async isHealthy(): Promise<boolean> {
+    try {
+      // Simple health check with ETH price query
+      await this.makeRequest('/price?sellToken=ETH&buyToken=USDC&sellAmount=1000000000000000000');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+/**
  * ParaSwapDEXService - ParaSwap aggregator API integration
- * 
+ *
  * PROVIDER INFO:
  * - Multi-chain DEX aggregator
  * - Advanced routing algorithms
  * - Good for large swaps
- * 
+ *
  * API DOCS: https://developers.paraswap.network/api/get-rate
  */
 class ParaSwapDEXService extends BaseAPIService {
@@ -457,7 +517,7 @@ class ParaSwapDEXService extends BaseAPIService {
  */
 class LiFiL2Service extends BaseAPIService {
   constructor() {
-    super('LI.FI', 'https://li.fi/api/v1');
+    super('LI.FI', 'https://li.quest/v1');
   }
 
   async getL2Options(request: TradeRequest): Promise<L2Option[]> {
@@ -535,6 +595,7 @@ export class APIOrchestrator {
   constructor(config: {
     blocknativeKey?: string;
     infuraKey?: string;
+    zeroExKey?: string;
   }) {
     this.cache = new Map();
     
@@ -544,10 +605,12 @@ export class APIOrchestrator {
       ...(config.infuraKey ? [new InfuraGasService(config.infuraKey)] : []),
     ];
 
-    // Initialize DEX aggregators (no API keys required)
+    // Initialize DEX aggregators
     this.dexServices = [
-      new OneInchDEXService(),
+      // ParaSwap - PRIMARY (no API key required, reliable)
       new ParaSwapDEXService(),
+      // 0x Protocol - BACKUP (optional, if API key available)
+      ...(config.zeroExKey ? [new ZeroExDEXService(config.zeroExKey)] : []),
     ];
 
     // Initialize L2 bridge services
